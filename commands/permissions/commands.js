@@ -1,22 +1,26 @@
-
-const db = require("quick.db")
-const Discord = require('discord.js');
+const db = require("quick.db");
+const { MessageEmbed } = require('discord.js');
 const { checkperm } = require("../../base/functions");
-var { defaultperm } = require("../../perm.json")
+const permFile = require("../../perm.json");
+
 module.exports = {
     name: "commands",
-    description: "Affiche toutes les commandes avec permissions modifiables",
+    description: "Displays all commands with modifiable permissions",
 
     run: async (client, message, args, cmd) => {
-        let perm = await checkperm(message,cmd.name)
-        if (perm == true) {
-            return message.reply({
-                embeds: [new Discord.MessageEmbed()
-                    .setColor(db.fetch(`${message.guild.id}.color`))
-                    .setTitle('Voici toutes les commandes avec permissions modifiables')
-                    .setDescription(`${defaultperm.map(r => "``" + r.name + "``").join(" / ")}`)]
-            })
-        } else if(perm === false) if(!db.fetch(`${message.guild.id}.vent`)) return message.reply(`:x: Vous n'avez pas la permission d'utiliser la commande \`${cmd.name}\` !`)
+        const permCheck = await checkperm(message, cmd.name);
+        if (!permCheck.hasPermission) {
+            if (!db.fetch(`${message.guild.id}.vent`)) {
+                return message.reply(`You don't have permission to use the command \`${cmd.name}\`!`);
+            }
+        } else {
+            const defaultPerms = permFile.defaultperm.map(p => `\`${p.name}\``).join(" / ");
+            const embed = new MessageEmbed()
+                .setColor(db.fetch(`${message.guild.id}.color`))
+                .setTitle('Voici toutes les commandes avec permissions modifiables')
+                .setDescription(defaultPerms);
 
+            return message.reply({ embeds: [embed] });
+        }
     }
-}
+};
