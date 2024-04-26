@@ -1,4 +1,3 @@
-
 const db = require("quick.db")
 const Discord = require('discord.js');
 const ms = require("ms")
@@ -68,7 +67,7 @@ module.exports = {
                                 .then(cld => {
                                     var msg = cld.first();
                                     if (msg.content.toLowerCase() === "off") { db.delete(`${message.guild.id}.join.wdelete`) } else {
-                                        if (!msg.content.endsWith("h") && !msg.content.endsWith("m") && !msg.content.endsWith("s")){ return message.channel.send(`:x: Durée incorrecte`);update(mm)}
+                                        if (!ms(msg.content)) { return message.channel.send(`:x: Durée incorrecte`); update(mm)}
                                         if(ms(msg.content) < 4000 || ms(msg.content) > 86400000){ return message.channel.send(`:x: la durée doit être comprise entre 3 secondes et 1 jour !\n_Pour les ghostping utilisez la commande \`ghostping\` !_`);update(mm)}
                                         db.set(`${message.guild.id}.join.wdelete`, ms(msg.content))
                                     }
@@ -122,30 +121,16 @@ module.exports = {
 }
 
 async function update(mm) {
-    let role = db.fetch(`${mm.guild.id}.join.role`)
-    if (role) {
-        role = mm.guild.roles.cache.get(role)
-        if (!role) {
-            db.delete(`${mm.guild.id}.join.role`)
-            role = undefined
-        }
-    }
-    let wmsg = db.fetch(`${mm.guild.id}.join.wmsg`)
-    if (!wmsg) {
-        db.set(`${mm.guild.id}.join.wmsg`, `**{username}** vient de rejoindre le serveur ! Nous sommes maintenant {membercount} membres !`)
-        wmsg = db.fetch(`${mm.guild.id}.join.wmsg`)
-    }
-    let channel = db.fetch(`${mm.guild.id}.join.wchannel`)
-    if (channel) {
-        channel = mm.guild.channels.cache.get(channel)
-        if (!channel) {
-            db.delete(`${mm.guild.id}.join.wchannel`)
-            channel = undefined
-        }
-    }
-
-    let mpmsg = db.fetch(`${mm.guild.id}.join.mpmsg`)
-    let joindelete = db.fetch(`${mm.guild.id}.join.wdelete`)
+    const role = db.fetch(`${mm.guild.id}.join.role`)
+    const wmsg = db.fetch(`${mm.guild.id}.join.wmsg`)
+    const channel = db.fetch(`${mm.guild.id}.join.wchannel`)
+    const mpmsg = db.fetch(`${mm.guild.id}.join.mpmsg`)
+    const joindelete = db.fetch(`${mm.guild.id}.join.wdelete`)
+    if (!role) db.set(`${mm.guild.id}.join.role`, undefined)
+    if (!wmsg) db.set(`${mm.guild.id}.join.wmsg`, `**{username}** vient de rejoindre le serveur ! Nous sommes maintenant {membercount} membres !`)
+    if (!channel) db.set(`${mm.guild.id}.join.wchannel`, undefined)
+    if (!mpmsg) db.set(`${mm.guild.id}.join.mpmsg`, undefined)
+    if (!joindelete) db.set(`${mm.guild.id}.join.wdelete`, 0)
     const roww = new Discord.MessageActionRow()
         .addComponents(
             new Discord.MessageSelectMenu()
@@ -183,11 +168,11 @@ async function update(mm) {
         .setTitle(`👋 Join Settings ${mm.guild.name}`)
         .setColor(db.fetch(`${mm.guild.id}.color`))
         .addFields(
-            { name: "`👥` Rôle membre", value: role ? `${role}` : ":x:" },
-            { name: "`🏷️` Salon de bienvenue", value: channel ? `${channel}` : ":x:" },
-            { name: "`💬` Message de bienvenue", value: wmsg ? `${wmsg}` : ":x:" },
-            { name: "`🔴` Supprimer le message de bienvenue", value: joindelete ? `\`${msToTime(joindelete)}\`` : ":x:"},
-            { name: "`🔑` Message en mp", value: mpmsg ? `\`${mpmsg}\`` : ":x:" },
+            { name: "`👥` Rôle membre", value: role ? `${role}` : "Aucun", inline: true },
+            { name: "`🏷️` Salon de bienvenue", value: channel ? `${channel}` : "Aucun", inline: true },
+            { name: "`💬` Message de bienvenue", value: wmsg ? `${wmsg}` : "Aucun", inline: true },
+            { name: "`🔴` Supprimer le message de bienvenue", value: joindelete ? `\`${msToTime(joindelete)}\`` : "Aucun", inline: true },
+            { name: "`🔑` Message en mp", value: mpmsg ? `\`${mpmsg}\`` : "Aucun", inline: true },
         )
     await mm.edit({ embeds: [msgembed], components: [roww] })
 }
