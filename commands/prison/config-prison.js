@@ -1,4 +1,3 @@
-
 const db = require("quick.db")
 const Discord = require('discord.js');
 const { checkperm } = require("../../base/functions");
@@ -12,7 +11,7 @@ module.exports = {
         if (perm == true) {
 
             const embed = new Discord.MessageEmbed()
-                .setColor(db.fetch(`${message.guild.id}.color`))
+                .setColor(db.fetch(`${message.guild.id}.color`) || 'DEFAULT')
                 .setTitle("Chargement...")
             message.reply({ embeds: [embed] }).then(mm => {
                 update(mm)
@@ -33,7 +32,6 @@ module.exports = {
                         let active = db.fetch(`${message.guild.id}.prison.active`)
                         if (active == true) { db.delete(`${message.guild.id}.prison.active`) } else {
                             let role = db.fetch(`${message.guild.id}.prison.role`)
-                            role = message.guild.roles.cache.get(role)
                             if (role) {
                                 db.set(`${message.guild.id}.prison.active`, true)
                                 message.channel.send(`:white_check_mark: Système activé !`)
@@ -104,7 +102,6 @@ module.exports = {
                     await i.deferUpdate()
                     if (i.customId === 'valid') {
                         let role = db.fetch(`${message.guild.id}.prison.role`)
-                        role = message.guild.roles.cache.get(role)
                         if (role) {
                             let channels = db.fetch(`${message.guild.id}.prison.channels`)
                             if (channels && channels.length > 0) {
@@ -193,7 +190,7 @@ module.exports = {
             let button_row = new Discord.MessageActionRow().addComponents([button1])
             const msgembed = new Discord.MessageEmbed()
                 .setAuthor({ name: `Système Prison` })
-                .setColor(db.fetch(`${message.guild.id}.color`))
+                .setColor(db.fetch(`${message.guild.id}.color`) || 'DEFAULT')
                 .addField("`📩` Activé", active ? ":white_check_mark:" : ":x:")
                 .addField("`🔪` Rôle Prisonnier", role ? `${role}` : ":x:")
                 .addField("`🏷️` Salons prisons", channels && channels.length > 0 ? channels.map(s => `- <#${s}>`).join("\n") : ":x:")
