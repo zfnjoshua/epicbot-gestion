@@ -3,7 +3,7 @@ const { MessageEmbed } = require("discord.js")
 const { checkperm } = require("../../base/functions");
 module.exports = {
     name: "piconly",
-    description: "Défini les salons pour les images uniquement",
+    description: "Define channels for image-only messages",
     aliases: ['pic-only', 'onlypic'],
 
     run: async (client, message, args, cmd) => {
@@ -11,10 +11,12 @@ module.exports = {
         if (perm == true) {
             if (args[0] && args[0].toLowerCase() === "list") {
                 let gpchannels = db.fetch(`${message.guild.id}.piconly`)
+                if (!gpchannels || !Array.isArray(gpchannels)) return message.reply(":x: Une erreur est survenue !")
                 for (i in gpchannels) {
                     let check = message.guild.channels.cache.get(gpchannels[i])
                     if (!check) {
                         const filtered = gpchannels.filter(e => e !== gpchannels[i]);
+                        if (filtered.length === gpchannels.length) return message.reply(":x: Une erreur est survenue !")
                         db.set(`${message.guild.id}.piconly`, filtered);
                     }
                 }
@@ -32,10 +34,12 @@ module.exports = {
             let actual = db.fetch(`${message.guild.id}.piconly`)
             if (actual && actual.includes(m.id)) {
                 const filtered = actual.filter(e => e !== m.id);
+                if (filtered.length === actual.length) return message.reply(":x: Une erreur est survenue !")
                 db.set(`${message.guild.id}.piconly`, filtered);
                 return message.reply(`📷 <#${m.id}> n'est plus un salon piconly !`)
             }
             db.push(`${message.guild.id}.piconly`, m.id)
+            if (db.fetch(`${message.guild.id}.piconly`).length === actual.length) return message.reply(":x: Une erreur est survenue !")
             return message.reply(`📷 <#${m.id}> est maintenant un salon piconly !\n_Utilisez \`piconly list\` pour voir tous les salons piconly_`)
 
 
