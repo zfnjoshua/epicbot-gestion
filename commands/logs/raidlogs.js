@@ -1,25 +1,27 @@
 const db = require("quick.db")
 const { checkperm } = require("../../base/functions");
+
 module.exports = {
     name: "raidlogs",
-    description: "Défini les logs de raid",
+    description: "Define the raid logs channel",
     aliases: ['raidlog'],
 
     run: async (client, message, args, cmd) => {
         let perm = await checkperm(message, "logs")
         if (perm == true) {
-
-            let m = message.mentions.channels.first() || message.guild.channels.cache.get(args[0]) || message.channel
-            if (!m || m.type !== "GUILD_TEXT") return message.reply(`:x: Salon invalide !`)
-            let actual = db.fetch(`${message.guild.id}.raidlogs`)
+            if (!message.guild) return;
+            let m = message.mentions.channels.first() || message.guild.channels.cache.get(args[0]) || message.channel;
+            if (!m || !m.type || m.type !== "GUILD_TEXT") return message.reply(`:x: Invalid channel!`);
+            let actual = await db.fetch(`${message.guild.id}.raidlogs`).catch(() => null);
             if (actual === m.id) {
-                db.delete(`${message.guild.id}.raidlogs`)
-                return message.reply(`:clipboard: Les logs de raid sont désactivés !`)
+                await db.delete(`${message.guild.id}.raidlogs`).catch(() => {});
+                return message.reply(`:clipboard: Raid logs are now disabled!`);
             }
-            db.set(`${message.guild.id}.raidlogs`, m.id)
-            return message.reply(`:clipboard: Les logs de raid seront maintenant envoyés dans <#${m.id}> !`)
+            await db.set(`${message.guild.id}.raidlogs`, m.id).catch(() => {});
+            return message.reply(`:clipboard: Raid logs will now be sent to <#${m.id}>!`);
 
-
-        } else if(perm === false) if(!db.fetch(`${message.guild.id}.vent`)) return message.reply(`:x: Vous n'avez pas la permission d'utiliser la commande \`logs\` !`)
+        } else if (perm === false) {
+            if (!db.fetch(`${message.guild.id}.vent`)) return message.reply(`:x: You don't have permission to use the \`logs\` command!`);
+        }
     }
 }
