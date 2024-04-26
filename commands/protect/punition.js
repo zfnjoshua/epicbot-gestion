@@ -13,7 +13,7 @@ module.exports = {
             const embed = new Discord.MessageEmbed()
                 .setColor(db.fetch(`${message.guild.id}.color`))
                 .setTitle("Chargement...")
-            message.reply({ embeds: [embed] }).then(mm => {
+            message.reply({ embeds: [embed] }).then(async (mm) => {
 
                 update(mm)
                 const filter = m => message.author.id === m.author.id;
@@ -35,7 +35,7 @@ module.exports = {
                     const embed = new Discord.MessageEmbed()
                         .setTitle(`Quelle sera la sanction ?`)
                         .setColor(db.fetch(`${message.guild.id}.color`))
-                        .setFooter({ text: value })
+                        .setFooter(value)
                     mm.edit({ embeds: [embed], components: [button_row] })
                     const collector2 = mm.createMessageComponentCollector({
                         componentType: "BUTTON",
@@ -45,8 +45,8 @@ module.exports = {
                         if (i.user.id !== message.author.id) return i.reply({ content: "Désolé, mais vous n'avez pas la permission d'utiliser ces boutons !", ephemeral: true }).catch(() => { })
                         if (i.customId === 'timeout') {
                             await i.reply(`⏱ Veuillez envoyer la durée du timeout **en seconde**:\nExemple: \`5\``).then(question => {
-                                message.channel.awaitMessages({ filter: filter, max: 1, time: 60000, errors: ['time'] })
-                                    .then(cld => {
+                                message.channel.awaitMessages({ filter, max: 1, time: 60000, errors: ['time'] })
+                                    .then(async (cld) => {
                                         var msg = cld.first();
                                         if (isNaN(msg.content) || msg.content < 0 || msg.content > 1728000000) {
                                             message.channel.send(":x: Ce n'est pas un chiffre valide")
@@ -58,13 +58,24 @@ module.exports = {
                                         i.deleteReply().catch(e => { })
                                         update(mm)
                                     })
+                                    .catch((error) => {
+                                        console.error(error);
+                                        i.reply({ content: 'Une erreur est survenue lors de la récupération du message.', ephemeral: true });
+                                    });
                             })
-                        } else { db.set(`${message.guild.id}.punition.${value}`, i.customId); update(mm); collector2.stop() }
+                        } else {
+                            db.set(`${message.guild.id}.punition.${value}`, i.customId);
+                            update(mm);
+                            collector2.stop()
+                        }
 
                     })
                 })
             })
-        } else if(perm === false) if(!db.fetch(`${message.guild.id}.vent`)) return message.reply(`:x: Vous n'avez pas la permission d'utiliser la commande \`${cmd.name}\` !`)
+        } else {
+            if (!db.fetch(`${message.guild.id}.vent`)) return message.reply(`:x: Vous n'avez pas la permission d'utiliser la commande \`${cmd.name}\` !`)
+        }
+
         function update(msg) {
             const roww = new Discord.MessageActionRow()
                 .addComponents(
@@ -107,40 +118,25 @@ module.exports = {
 
                         ])
                 )
-            let link = db.fetch(`${message.guild.id}.punition.antilink`)
-            if(!link) link = client.perms.antiraid.antilink
-
-            let bot = db.fetch(`${message.guild.id}.punition.antibot`)
-            if(!bot) bot = client.perms.antiraid.antibot
-
-            let spam = db.fetch(`${message.guild.id}.punition.antispam`)
-            if(!spam) spam = client.perms.antiraid.antispam
-
-            let channel = db.fetch(`${message.guild.id}.punition.antichannel`)
-            if(!channel) channel = client.perms.antiraid.antichannel
-
-            let role = db.fetch(`${message.guild.id}.punition.role`)
-            if(!role) role = client.perms.antiraid.role
-
-            let roleupdate = db.fetch(`${message.guild.id}.punition.roleupdate`)
-            if(!roleupdate) roleupdate = client.perms.antiraid.roleupdate
-
-            let guildupdate = db.fetch(`${message.guild.id}.punition.guildupdate`)
-            if(!guildupdate) guildupdate = client.perms.antiraid.guildupdate
-            
-            let url = db.fetch(`${message.guild.id}.punition.lockurl`)
-            if(!url) url = client.perms.antiraid.lockurl
+            let link = db.fetch(`${message.guild.id}.punition.antilink`) || client.perms.antiraid.antilink
+            let bot = db.fetch(`${message.guild.id}.punition.antibot`) || client.perms.antiraid.antibot
+            let spam = db.fetch(`${message.guild.id}.punition.antispam`) || client.perms.antiraid.antispam
+            let channel = db.fetch(`${message.guild.id}.punition.antichannel`) || client.perms.antiraid.antichannel
+            let role = db.fetch(`${message.guild.id}.punition.role`) || client.perms.antiraid.role
+            let roleupdate = db.fetch(`${message.guild.id}.punition.roleupdate`) || client.perms.antiraid.roleupdate
+            let guildupdate = db.fetch(`${message.guild.id}.punition.guildupdate`) || client.perms.antiraid.guildupdate
+            let url = db.fetch(`${message.guild.id}.punition.lockurl`) || client.perms.antiraid.lockurl
             const msgembed = new Discord.MessageEmbed()
                 .setTitle("Punitions Anti-Raid")
                 .setColor(db.fetch(`${message.guild.id}.color`))
-                .addField("Anti-Link", link === "off" ? ":x:" : isNaN(link) ? `${link}` : `Timeout [${link}sec]`)
-                .addField("Anti-Spam", spam === "off" ? ":x:" : isNaN(spam) ? `${spam}` : `Timeout [${spam}sec]`)
-                .addField("Anti-Bot", bot === "off" ? ":x:" : isNaN(bot) ? `${bot}` : `Timeout [${bot}sec]`)
-                .addField("Anti-Channel", channel === "off" ? ":x:" : isNaN(channel) ? `${channel}` : `Timeout [${channel}sec]`)
-                .addField("Anti-Role", role === "off" ? ":x:" : isNaN(role) ? `${role}` : `Timeout [${role}sec]`)
-                .addField("Anti-RoleUpdate", roleupdate === "off" ? ":x:" : isNaN(roleupdate) ? `${roleupdate}` : `Timeout [${roleupdate}sec]`)
-                .addField("Anti-GuildUpdate", guildupdate === "off" ? ":x:" : isNaN(guildupdate) ? `${guildupdate}` : `Timeout [${guildupdate}sec]`)
-                .addField("Lockurl", url === "off" ? ":x:" : isNaN(url) ? `${url}` : `Timeout [${url}sec]`)
+                .addField("Anti-Link", link === "off" ? ":x:" : (isNaN(link) ? link : `Timeout [${link}sec]`))
+                .addField("Anti-Spam", spam === "off" ? ":x:" : (isNaN(spam) ? spam : `Timeout [${spam}sec]`))
+                .addField("Anti-Bot", bot === "off" ? ":x:" : (isNaN(bot) ? bot : `Timeout [${bot}sec]`))
+                .addField("Anti-Channel", channel === "off" ? ":x:" : (isNaN(channel) ? channel : `Timeout [${channel}sec]`))
+                .addField("Anti-Role", role === "off" ? ":x:" : (isNaN(role) ? role : `Timeout [${role}sec]`))
+                .addField("Anti-RoleUpdate", roleupdate === "off" ? ":x:" : (isNaN(roleupdate) ? roleupdate : `Timeout [${roleupdate}sec]`))
+                .addField("Anti-GuildUpdate", guildupdate === "off" ? ":x:" : (isNaN(guildupdate) ? guildupdate : `Timeout [${guildupdate}sec]`))
+                .addField("Lockurl", url === "off" ? ":x:" : (isNaN(url) ? url : `Timeout [${url}sec]`))
             msg.edit({ embeds: [msgembed], components: [roww] })
         }
     }
