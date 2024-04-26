@@ -10,13 +10,15 @@ module.exports = {
         let perm = await checkperm(message,cmd.name)
         if (perm == true) {
             let count = 0
-            let member = message.guild.members.cache.filter(m => m.user.bot).map(x => {
-                count++
-                return `\`\`${count}\`\` **${x.user.tag}**`
-            });
+            let member;
+            try {
+                member = message.guild.members.cache.filter(m => m.user.bot);
+            } catch (error) {
+                return message.reply(":x: Une erreur est survenue lors de la récupération des membres.");
+            }
 
-            if (member.length < 1) {
-                return message.reply(":x: Il n'y a pas de bots dans ce serveur")
+            if (!member.length) {
+                return message.reply(":x: Il n'y a pas de bots dans ce serveur");
             } else {
                 let embeds = {};
                 let page = 0;
@@ -54,48 +56,53 @@ module.exports = {
                         embeds: [embed],
                     })
                 } else {
-                    await message.reply({
-                        embeds: [embed],
-                        components: [row]
-                    }).then(messages => {
+                    try {
+                        const messages = await message.reply({
+                            embeds: [embed],
+                            components: [row]
+                        });
 
-                    const collector = messages.createMessageComponentCollector({
-                        componentType: "BUTTON",
-                        time: 60000,
-                    })
-                    collector.on("collect", async (interaction) => {
-                        if (interaction.user.id !== message.author.id) return interaction.reply({ content: "Vous n'avez pas la permission !", ephemeral: true }).catch(() => { })
-                        await interaction.deferUpdate();
+                        const collector = messages.createMessageComponentCollector({
+                            componentType: "BUTTON",
+                            time: 60000,
+                        })
+                        collector.on("collect", async (interaction) => {
+                            if (!interaction.deferred) await interaction.deferUpdate();
+                            if (interaction.user.id !== message.author.id) return interaction.reply({ content: "Vous n'avez pas la permission !", ephemeral: true }).catch(() => { })
 
-                        if (interaction.customId === "left") {
-                            if (page == parseInt(Object.keys(embeds).shift())) page = parseInt(Object.keys(embeds).pop())
-                            else page--;
-                            embed.setDescription(embeds[page].join('\n'))
-                            embed.setFooter({ text: `Page ${page + 1}/${memberarray.length}` })
+                            if (interaction.customId === "left") {
+                                if (page == parseInt(Object.keys(embeds).shift())) page = parseInt(Object.keys(embeds).pop())
+                                else page--;
+                                if (!embeds[page]) return interaction.reply({ content: "Erreur de page !", ephemeral: true }).catch(() => { })
+                                embed.setDescription(embeds[page].join('\n'))
+                                embed.setFooter({ text: `Page ${page + 1}/${memberarray.length}` })
 
-                            messages.edit({
-                                embeds: [embed],
-                                components: [row]
-                            }).catch(() => null)
-                        }
+                                interaction.editReply({
+                                    embeds: [embed],
+                                    components: [row]
+                                }).catch(() => null)
+                            }
 
-                        if (interaction.customId === "right") {
-                            if (page == parseInt(Object.keys(embeds).pop())) page = parseInt(Object.keys(embeds).shift())
-                            else page++;
-                            embed.setDescription(embeds[page].join('\n'))
-                            embed.setFooter({ text: `Page ${page + 1}/${memberarray.length}` })
+                            if (interaction.customId === "right") {
+                                if (page == parseInt(Object.keys(embeds).pop())) page = parseInt(Object.keys(embeds).shift())
+                                else page++;
+                                if (!embeds[page]) return interaction.reply({ content: "Erreur de page !", ephemeral: true }).catch(() => { })
+                                embed.setDescription(embeds[page].join('\n'))
+                                embed.setFooter({ text: `Page ${page + 1}/${memberarray.length}` })
 
-                            messages.edit({
-                                embeds: [embed],
-                                components: [row]
-                            }).catch(() => null)
-                        }
-                    });
-                
-                    collector.on("end", async () => {
-                        return messages.edit({ content: "Expiré !", components: [] }).catch(() => { })
-                      })
-                    })
+                                interaction.editReply({
+                                    embeds: [embed],
+                                    components: [row]
+                                }).catch(() => null)
+                            }
+                        });
+
+                        collector.on("end", async () => {
+                            return interaction.editReply({ content: "Expiré !", components: [] }).catch(() => { })
+                        })
+                    } catch (error) {
+                        return message.reply(":x: Une erreur est survenue lors de l'envoi du message.");
+                    }
                 }
             }
         } else if(perm === false) if(!db.fetch(`${message.guild.id}.vent`)) return message.reply(`:x: Vous n'avez pas la permission d'utiliser la commande \`${cmd.name}\` !`)
